@@ -1,5 +1,6 @@
 // Initialize attendance data from localStorage
 let attendanceData = JSON.parse(localStorage.getItem('attendance')) || {};
+let currentSubject = null; // To store the subject being undone
 
 // Function to save attendance data to localStorage
 function saveData() {
@@ -12,23 +13,22 @@ function renderAttendanceList() {
   attendanceList.innerHTML = '';
 
   for (const subject in attendanceData) {
-    const { present, absent, cancelled } = attendanceData[subject];
-    const totalClasses = present + absent + cancelled;
-    const attendedClasses = present + absent; // Exclude cancelled classes
-    const attendancePercentage = attendedClasses > 0 ? ((present / attendedClasses) * 100).toFixed(2) : 0;
+    const { present, absent } = attendanceData[subject];
+    const totalClasses = present + absent;
+    const attendancePercentage = totalClasses > 0 ? ((present / totalClasses) * 100).toFixed(2) : 0;
 
     // Determine actionable insights
     let actionableText = '';
     let insightClass = '';
     if (attendancePercentage > 80) {
-      const maxBunkable = Math.floor((present - 0.75 * attendedClasses) / 0.75);
+      const maxBunkable = Math.floor((present - 0.75 * totalClasses) / 0.75);
       actionableText = `You can bunk up to ${maxBunkable} class(es).`;
       insightClass = 'green';
     } else if (attendancePercentage >= 75) {
       actionableText = `You are on the border.`;
       insightClass = 'yellow';
     } else {
-      const requiredClasses = Math.ceil((0.75 * attendedClasses - present) / 0.25);
+      const requiredClasses = Math.ceil((0.75 * totalClasses - present) / 0.25);
       actionableText = `Attend ${requiredClasses} more class(es) to reach 75%.`;
       insightClass = 'red';
     }
@@ -61,7 +61,7 @@ function renderAttendanceList() {
     // Stats
     const statsDiv = document.createElement('div');
     statsDiv.classList.add('stats');
-    statsDiv.innerHTML = `Total: ${totalClasses}, Present: ${present}, Absent: ${absent}, Cancelled: ${cancelled}`;
+    statsDiv.innerHTML = `Total: ${totalClasses}, Present: ${present}, Absent: ${absent}`;
 
     // Actionable Insight
     const actionableInsight = document.createElement('div');
@@ -74,8 +74,7 @@ function renderAttendanceList() {
     buttonsDiv.innerHTML = `
       <button class="notion-button present-btn" style="background-color: #00c853; color: white;" onclick="markAttendance('${subject}', 'present')">PRESENT</button>
       <button class="notion-button absent-btn" style="background-color: #d32f2f; color: white;" onclick="markAttendance('${subject}', 'absent')">ABSENT</button>
-      <button class="notion-button" onclick="markAttendance('${subject}', 'cancelled')">CANCELLED</button>
-      <button class="notion-button undo-btn" onclick="undoLastAction('${subject}')">UNDO</button>
+      <button class="notion-button undo-btn" onclick="showUndoDialog('${subject}')">UNDO</button>
     `;
 
     // Append elements to subject info
@@ -108,7 +107,7 @@ document.getElementById('add-subjects-btn').addEventListener('click', () => {
 
   subjects.forEach(subject => {
     if (subject && !attendanceData[subject]) {
-      attendanceData[subject] = { present: 0, absent: 0, cancelled: 0 };
+      attendanceData[subject] = { present: 0, absent: 0 };
       addedSubjects = true;
     }
   });
@@ -131,23 +130,25 @@ function markAttendance(subject, status) {
   renderAttendanceList();
 }
 
-// Function to undo last action
-function undoLastAction(subject) {
+// Function to show the undo dialog
+function showUndoDialog(subject) {
   if (!attendanceData[subject]) return;
+  
+  // Store the current subject
+  currentSubject = subject;
+  
+  // Get the dialog
+  const dialog = document.getElementById('undo-dialog');
+  
+  // Show the dialog
+  dialog.style.display = 'flex';
+}
 
-  const choice = prompt("Do you want to undo a 'Present' or 'Absent'? Type 'P' for Present and 'A' for Absent.").toUpperCase();
-
-  if (choice === 'P' && attendanceData[subject].present > 0) {
-    attendanceData[subject].present--;
-  } else if (choice === 'A' && attendanceData[subject].absent > 0) {
-    attendanceData[subject].absent--;
-  } else {
-    alert("Invalid choice or no records to undo.");
-    return;
-  }
-
-  saveData();
-  renderAttendanceList();
+// Function to hide the undo dialog
+function hideUndoDialog() {
+  const dialog = document.getElementById('undo-dialog');
+  dialog.style.display = 'none';
+  currentSubject = null;
 }
 
 // Function to reset attendance
@@ -157,6 +158,59 @@ document.getElementById('reset-btn').addEventListener('click', () => {
     saveData();
     renderAttendanceList();
   }
+});
+
+// Function to migrate old data format (removes cancelled if it exists)
+function migrateData() {
+  let needsSave = false;
+  
+  for (const subject in attendanceData) {
+    // If data has the old format with cancelled classes
+    if (attendanceData[subject].hasOwnProperty('cancelled')) {
+      // Delete the cancelled property
+      delete attendanceData[subject].cancelled;
+      needsSave = true;
+    }
+  }
+  
+  if (needsSave) {
+    saveData();
+  }
+}
+
+// Set up undo dialog button event listeners
+document.addEventListener('DOMContentLoaded', () => {
+  // Migrate old data format
+  migrateData();
+  
+  // Present button
+  document.getElementById('undo-present').addEventListener('click', () => {
+    if (currentSubject && attendanceData[currentSubject].present > 0) {
+      attendanceData[currentSubject].present--;
+      saveData();
+      renderAttendanceList();
+    } else {
+      alert("No present records to undo.");
+    }
+    hideUndoDialog();
+  });
+  
+  // Absent button
+  document.getElementById('undo-absent').addEventListener('click', () => {
+    if (currentSubject && attendanceData[currentSubject].absent > 0) {
+      attendanceData[currentSubject].absent--;
+      saveData();
+      renderAttendanceList();
+    } else {
+      alert("No absent records to undo.");
+    }
+    hideUndoDialog();
+  });
+  
+  // Cancel button
+  document.getElementById('undo-cancel').addEventListener('click', () => {
+    hideUndoDialog();
+  });
 });
 
 // Initial render
