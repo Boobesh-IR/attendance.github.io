@@ -2,7 +2,7 @@
 <html lang="en" >
 <head>
   <meta charset="UTF-8">
-  <title>Attendance</title>
+  <title>Bunk Mate</title>
   <link rel="stylesheet" href="./style.css">
 
 </head>
@@ -13,13 +13,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Attendance Tracker - Notion Arcade</title>
+  <title>Bunk Mate - Notion Arcade</title>
   <link rel="stylesheet" href="styles.css">
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="notion-container">
-    <h1 class="notion-title">ATTENDANCE TRACKER</h1>
+    <h1 class="notion-title">BUNK MATE</h1>
     <!-- Add Classes -->
     <div class="input-group">
       <label for="subjects">Add classes (comma-separated):</label>
@@ -30,6 +30,19 @@
     <div id="attendance-list" class="attendance-list"></div>
     <!-- Reset Button -->
     <button id="reset-btn" class="notion-button reset-button">RESET ATTENDANCE</button>
+    
+    <!-- Undo Dialog -->
+    <div id="undo-dialog" class="dialog-overlay">
+      <div class="dialog-box">
+        <div class="dialog-title">UNDO ATTENDANCE</div>
+        <div class="dialog-content">Do you want to undo a 'Present' or 'Absent'?</div>
+        <div class="dialog-buttons">
+          <button id="undo-present" class="notion-button present-btn" style="background-color: #00c853; color: white;">PRESENT</button>
+          <button id="undo-absent" class="notion-button absent-btn" style="background-color: #d32f2f; color: white;">ABSENT</button>
+          <button id="undo-cancel" class="notion-button">CANCEL</button>
+        </div>
+      </div>
+    </div>
   </div>
   <script src="script.js"></script>
 </body>
